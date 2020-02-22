@@ -2,7 +2,7 @@ TAG?=""
 
 # Run all tests
 .PHONY: test
-test: build fmt lint vet test-unit go-mod-tidy
+test: fmt lint vet test-unit go-mod-tidy
 
 # Clean up any cruft left over from old builds
 .PHONY: clean
@@ -21,7 +21,7 @@ test-unit:
 
 # Clean go.mod
 .PHONY: go-mod-tidy
-go-mod-tidy: build
+go-mod-tidy:
 	go mod tidy
 	git diff HEAD
 	git diff --exit-code
