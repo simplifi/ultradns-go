@@ -104,6 +104,7 @@ func TestRefreshTokenAuthorization(t *testing.T) {
 	err := auth.Authorize(client)
 	assert.NoError(t, err)
 	refreshToken := auth.RefreshToken
+	assert.NotEqual(t, refreshToken, "")
 
 	// Clear out username/password to ensure that we can't use them.
 	auth.Lock()
@@ -115,5 +116,6 @@ func TestRefreshTokenAuthorization(t *testing.T) {
 	// Reauthorize, ensure that the refresh token has changed
 	err = auth.Authorize(client)
 	assert.NoError(t, err)
+	assert.NotEqual(t, refreshToken, "")
 	assert.NotEqual(t, refreshToken, auth.RefreshToken)
 }
