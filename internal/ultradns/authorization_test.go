@@ -18,6 +18,7 @@ const validPassword = "secretcode"
 func ultradnsAuthMockServer(t *testing.T) *httptest.Server {
 	// Container for the response
 	var resp string
+	respCode := 200
 	var refreshToken string
 
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -32,6 +33,7 @@ func ultradnsAuthMockServer(t *testing.T) *httptest.Server {
 					refreshToken = fmt.Sprintf("%0x", rand.Int63())
 					resp = successResponse(refreshToken)
 				} else {
+					respCode = 400
 					resp = failureResponse()
 				}
 			case "password":
@@ -40,14 +42,17 @@ func ultradnsAuthMockServer(t *testing.T) *httptest.Server {
 					refreshToken = fmt.Sprintf("%0x", rand.Int63())
 					resp = successResponse(refreshToken)
 				} else {
+					respCode = 400
 					resp = failureResponse()
 				}
 			default:
+				respCode = 400
 				resp = failureResponse()
 			}
 		}
 
 		// Output the JSON to the client
+		w.WriteHeader(respCode)
 		w.Write([]byte(resp))
 	}))
 }
@@ -118,4 +123,18 @@ func TestRefreshTokenAuthorization(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotEqual(t, refreshToken, "")
 	assert.NotEqual(t, refreshToken, auth.RefreshToken)
+}
+
+func TestAuthorizationFailed(t *testing.T) {
+	server := ultradnsAuthMockServer(t)
+	defer server.Close()
+
+	auth := NewAuthorization("EVILHACKER", "MWAHAHAHA")
+	auth.BaseURL = server.URL
+	client := &http.Client{
+		Timeout: 1 * time.Second,
+	}
+
+	err := auth.Authorize(client)
+	assert.Error(t, err, "Failed authorization didn't return an error")
 }

@@ -52,6 +52,22 @@ func (auth *Authorization) Authorize(client *http.Client) error {
 		return err
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 || resp.StatusCode < 200 {
+		errorBodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			return fmt.Errorf("Authorization call returned HTTP Status Code %d. Unable to read body of response", resp.StatusCode)
+		}
+
+		errorJSON := errorResponse{}
+		err = json.Unmarshal(errorBodyBytes, &errorJSON)
+		if err != nil {
+			return fmt.Errorf("Authorization call returned HTTP Status Code %d. JSON parsing failed for body '%s'", resp.StatusCode, string(errorBodyBytes))
+		}
+
+		return fmt.Errorf("Authorization call returned HTTP Status Code %d. Error was %s", resp.StatusCode, errorJSON.ErrorDescription)
+	}
+
 	currentEpoch := time.Now().Unix()
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -115,4 +131,15 @@ type tokenResponse struct {
 	RefreshToken string `json:"refreshToken"`
 	AccessToken  string `json:"accessToken"`
 	ExpiresIn    string `json:"expiresIn"`
+}
+
+type errorResponse struct {
+	// Numerical code
+	ErrorCode int `json:"error_code"`
+	// human-readable error message
+	ErrorMessage string `json:"error_message"`
+	// Specific error type, e.g. 'unsupported_grant_type'
+	Error string `json:"error"`
+	// ErrorCode + ErrorMessage
+	ErrorDescription string `json:"error_description"`
 }
