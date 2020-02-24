@@ -23,8 +23,7 @@ test-unit:
 .PHONY: go-mod-tidy
 go-mod-tidy:
 	go mod tidy
-	git diff HEAD
-	git diff --exit-code
+	git diff --exit-code go.sum
 
 # Check formatting
 .PHONY: fmt

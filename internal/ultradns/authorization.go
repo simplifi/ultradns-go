@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -37,21 +38,16 @@ func NewAuthorization(username string, password string) *Authorization {
 
 // Authorize retrives new tokens if necessary.
 // Threadsafe.
-// Checks the expiration of the current AccessToken. Does nothing if the AccessToken has not expired.
+// Checks the expiration of the current AccessToken. Does nothing if the AccessToken is not close to expiration.
 // If the token has expired, then it will ask for a new token using the RefreshToken.
 // If the RefreshToken is not available, then authorizes using the username/password.
 // In any cases where authorization is performed, the struct is locked and updated with the new Tokens.
 func (auth *Authorization) Authorize(client *http.Client) error {
-	if auth.TokenIsValid() {
+	if auth.tokenIsValid() {
 		return nil
 	}
-	values := url.Values{
-		// TODO: This should support refresh_token as well
-		"grant_type": {"password"},
-		"username":   {auth.Username},
-		"password":   {auth.Password},
-	}
-	resp, err := client.PostForm(auth.BaseURL+"/authorization/token", values)
+
+	resp, err := client.PostForm(auth.BaseURL+"/authorization/token", auth.authQuery())
 	if err != nil {
 		return err
 	}
@@ -65,11 +61,14 @@ func (auth *Authorization) Authorize(client *http.Client) error {
 	// Pull the token data from the response and store it in the struct.
 	authJSON := tokenResponse{}
 	json.Unmarshal(bodyBytes, &authJSON)
-	i, err := strconv.ParseInt(authJSON.ExpiresIn, 10, 64)
+	validSeconds, err := strconv.ParseInt(authJSON.ExpiresIn, 10, 64)
 	if err != nil {
 		return err
 	}
-	expiration := i + currentEpoch
+
+	// Get the http.Client timeout in seconds to use as a margin of error.
+	clientTimeout := int64(math.Ceil(client.Timeout.Seconds()))
+	expiration := validSeconds + currentEpoch - clientTimeout
 
 	// Writes to the struct should be controlled by locking.
 	auth.Lock()
@@ -83,8 +82,24 @@ func (auth *Authorization) Authorize(client *http.Client) error {
 	return nil
 }
 
-// TokenIsValid Returns true if the Authorization struct has a current AccessToken
-func (auth *Authorization) TokenIsValid() bool {
+// authQuery returns the correct url.Values struct based on whether the RefreshToken is available
+func (auth *Authorization) authQuery() url.Values {
+	if auth.RefreshToken == "" {
+		return url.Values{
+			"grant_type": {"password"},
+			"username":   {auth.Username},
+			"password":   {auth.Password},
+		}
+	}
+
+	return url.Values{
+		"grant_type":    {"refresh_token"},
+		"refresh_token": {auth.RefreshToken},
+	}
+}
+
+// tokenIsValid Returns true if the Authorization struct has an unexpired AccessToken
+func (auth *Authorization) tokenIsValid() bool {
 	if auth.AccessToken == "" {
 		return false
 	}
