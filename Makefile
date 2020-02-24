@@ -4,16 +4,6 @@ TAG?=""
 .PHONY: test
 test: fmt lint vet test-unit go-mod-tidy
 
-# Clean up any cruft left over from old builds
-.PHONY: clean
-clean:
-	rm -f ultradns
-
-# Build a beta version of ultradns
-.PHONY: build
-build: clean
-	CGO_ENABLED=0 go build -o ultradns
-
 # Run unit tests
 .PHONY: test-unit
 test-unit:
