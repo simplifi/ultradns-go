@@ -43,3 +43,12 @@ resp, err := apiConn.Get("/some/api/path")
 // Send a POST request to the given path. Returns a http.Response pointer and error.
 resp, err := apiConn.Post("/some/api/path", json_to_send)
 ```
+
+## Testing
+
+Ensure that golint is installed
+```
+go get -u golang.org/x/lint/golint
+```
+
+Run all tests, linters, etc with `make`.
