@@ -45,6 +45,17 @@ resp, err := apiConn.Get("/some/api/path")
 resp, err := apiConn.Post("/some/api/path", json_to_send)
 ```
 
+## Examples
+
+There are various examples in `examples/` that give real examples. Most require passing in a -user and -pass flag to
+authenticate with UltraDNS. To build an example, run `make <name of example>`
+
+For example, to compile and run the status example from `examples/status/main.go`:
+```
+make status
+./status -user <username> -pass <password>
+```
+
 ## Testing
 
 Ensure that golint is installed

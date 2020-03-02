@@ -25,7 +25,7 @@ type Authorization struct {
 
 // NewAuthorization returns an initialized Authorization struct
 func NewAuthorization(username string, password string) *Authorization {
-	auth := &Authorization{
+	return &Authorization{
 		Username:     username,
 		Password:     password,
 		AccessToken:  "",
@@ -33,7 +33,6 @@ func NewAuthorization(username string, password string) *Authorization {
 		RefreshToken: "",
 		BaseURL:      "https://api.ultradns.com",
 	}
-	return auth
 }
 
 // Authorize retrives new tokens if necessary.

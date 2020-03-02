@@ -23,7 +23,6 @@ func ultradnsMockServer(t *testing.T) *httptest.Server {
 	var resp string
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer "+validAccessToken {
-			fmt.Println(r.Header)
 			w.WriteHeader(400)
 			w.Write([]byte(`{"errorCode":60004,"errorMessage":"Authorization Header required"}`))
 			return
@@ -59,13 +58,11 @@ func stubbedServerAndAPIConn(t *testing.T) (*httptest.Server, *APIConnection) {
 	auth := validAuthorization()
 	auth.BaseURL = server.URL
 
-	return server, &APIConnection{
-		Client: &http.Client{
-			Timeout: 1 * time.Second,
-		},
-		Authorization: auth,
-		BaseURL:       server.URL,
-	}
+	apiConn := NewAPIConnection(&APIOptions{})
+	apiConn.BaseURL = server.URL
+	apiConn.Authorization = auth
+
+	return server, apiConn
 }
 
 func TestClientGetSendsAuthToken(t *testing.T) {
@@ -78,4 +75,20 @@ func TestClientGetSendsAuthToken(t *testing.T) {
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
 	assert.NoError(t, err)
 	assert.Equal(t, `{"fooBar":"isFooBar"}`, string(bodyBytes))
+}
+
+func TestClientGetInvalidTokenReturnsError(t *testing.T) {
+	server := ultradnsMockServer(t)
+	auth := validAuthorization()
+	auth.BaseURL = server.URL
+	auth.AccessToken = "invalid"
+
+	apiConn := NewAPIConnection(&APIOptions{})
+	apiConn.BaseURL = server.URL
+	apiConn.Authorization = auth
+
+	_, err := apiConn.Get("/foo")
+	assert.Error(t, err)
+	// Ensure that the error message is parsed correctly from the expected error JSON:
+	assert.Equal(t, err.Error(), "60004: Authorization Header required")
 }

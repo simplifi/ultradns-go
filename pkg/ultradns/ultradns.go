@@ -63,19 +63,19 @@ func NewAPIConnection(options *APIOptions) *APIConnection {
 	}
 }
 
-// Get executes a GET request at the given path using the APIConnection's client and credentials
+// Get executes a GET request at the given url using the APIConnection's client and credentials
+// The url can have parameters on it, e.g. "/foo?bar=baz"
 // error will be non-nil when:
 // * encountering an error authorizing
 // * Failing to connect to the API server
 // * When getting an HTTP status code of >= 400
-// TODO: Accept parameters
-func (apiConn *APIConnection) Get(path string) (*http.Response, error) {
+func (apiConn *APIConnection) Get(url string) (*http.Response, error) {
 	err := apiConn.Authorization.Authorize(apiConn.Client)
 	if err != nil {
 		return nil, err
 	}
 
-	req, err := http.NewRequest("GET", apiConn.BaseURL+path, nil)
+	req, err := http.NewRequest("GET", apiConn.BaseURL+url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -100,13 +100,8 @@ func (apiConn *APIConnection) Get(path string) (*http.Response, error) {
 			return resp, fmt.Errorf("API returned HTTP status code %d. Could not parse response body", resp.StatusCode)
 		}
 
-		fmt.Println(resp.StatusCode)
-		fmt.Println(string(bodyBytes))
 		return resp, &errResp
 	}
 
 	return resp, nil
 }
-
-// Pool stuff
-// GET https://api.ultradns.com/zones/{zoneName}/rrsets/{rrType}/{ownerName}
