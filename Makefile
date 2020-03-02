@@ -29,3 +29,13 @@ lint:
 .PHONY: vet
 vet:
 	go vet ./...
+
+# Clean the examples
+.PHONY: clean-examples
+clean-examples:
+	rm status
+
+# Build the examples
+.PHONY: examples
+examples: clean-examples
+	go build -o status examples/status/main.go
