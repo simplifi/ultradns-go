@@ -72,12 +72,8 @@ func NewAPIConnection(options *APIOptions) *APIConnection {
 func (apiConn *APIConnection) Get(path string) (*http.Response, error) {
 	err := apiConn.Authorization.Authorize(apiConn.Client)
 	if err != nil {
-		// TODO: debugging
-		fmt.Println("FAILED AUTH")
 		return nil, err
 	}
-	// TODO: debugging
-	fmt.Println("SUCESSFUL AUTH")
 
 	req, err := http.NewRequest("GET", apiConn.BaseURL+path, nil)
 	if err != nil {

@@ -32,6 +32,8 @@ func ultradnsMockServer(t *testing.T) *httptest.Server {
 		case "/foo":
 			resp = `{"fooBar":"isFooBar"}`
 		default:
+			// This default case makes it easier to diagnose when new tests fail.
+			w.WriteHeader(400)
 			resp = `{"error":"wrong URL","url":"` + r.RequestURI + `"}`
 		}
 
@@ -48,22 +50,27 @@ func validAuthorization() *ultradns.Authorization {
 		RefreshToken: validRefreshToken,
 		TokenExpires: time.Now().Unix() + 3600,
 	}
-
 }
-func TestClientGetSendsAuthToken(t *testing.T) {
+
+// Create the mock server and return it and stubbed APIConnection that points to it.
+func stubbedServerAndAPIConn(t *testing.T) (*httptest.Server, *APIConnection) {
 	server := ultradnsMockServer(t)
-	defer server.Close()
 
 	auth := validAuthorization()
 	auth.BaseURL = server.URL
 
-	apiConn := APIConnection{
+	return server, &APIConnection{
 		Client: &http.Client{
 			Timeout: 1 * time.Second,
 		},
 		Authorization: auth,
 		BaseURL:       server.URL,
 	}
+}
+
+func TestClientGetSendsAuthToken(t *testing.T) {
+	server, apiConn := stubbedServerAndAPIConn(t)
+	defer server.Close()
 
 	resp, err := apiConn.Get("/foo")
 	assert.NoError(t, err)

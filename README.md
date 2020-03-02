@@ -9,10 +9,11 @@ Import:
 import "github.com/simplifi/ultradns-go"
 ```
 
-To do a basic API connection and call, construct an ultradns.APIConnection object.
+To do a basic API connection and call, construct an `ultradns.APIConnection` struct. `ultradns.NewAPIConnection()` is
+provided to apply default configuration while still allowing control over the underlying connection.
 
-ultradns.APIOptions has reasonable defaults for most things.
-You must pass in either the Username/Password or RefreshToken. If you pass both, the RefreshToken takes precedence.
+When creating the struct either via the `NewAPIConnection()` call, or directly, either the `Username`/`Password` or
+`RefreshToken` must be set. If you pass both, the `RefreshToken` takes precedence.
 
 This project only supports the JSON API request/response for UltraDNS, not the optional XML format.
 
