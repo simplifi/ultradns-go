@@ -7,7 +7,7 @@ import "fmt"
 // UltraDNS' API return values vary between snake and camel case. This attempts to handle that.
 // TODO: move to common code.
 type ErrorResponse struct {
-	ErrorResponseI
+	error
 	// Numerical code
 	ErrorCodeCC int `json:"errorCode"`
 	ErrorCodeSC int `json:"error_code"`
@@ -21,17 +21,9 @@ type ErrorResponse struct {
 	ErrorDescriptionSC string `json:"error_description"`
 }
 
-// ErrorResponseI is the error reponse interface
-type ErrorResponseI interface {
-	ErrorCode() int
-	ErrorMessage() string
-	ErrorType() string
-	ErrorDescription() string
-}
-
 // ErrorCode returns the error code from the error response
 // The code is a numerical representation. `0` means no error.
-func (e *ErrorResponse) ErrorCode() int {
+func (e ErrorResponse) ErrorCode() int {
 	if e.ErrorCodeCC > 0 {
 		return e.ErrorCodeCC
 	}
@@ -40,7 +32,7 @@ func (e *ErrorResponse) ErrorCode() int {
 
 // ErrorMessage returns the error message from the error response
 // The error message is a human-readable message
-func (e *ErrorResponse) ErrorMessage() string {
+func (e ErrorResponse) ErrorMessage() string {
 	if e.ErrorMessageCC != "" {
 		return e.ErrorMessageCC
 	}
@@ -50,13 +42,13 @@ func (e *ErrorResponse) ErrorMessage() string {
 // ErrorType returns a string error type. This is useful for being able to
 // get a more concise string to do switching on for custom error handling.
 // This just returns the ErrorTypeValue field to provide a consistent API for this error struct.
-func (e *ErrorResponse) ErrorType() string {
+func (e ErrorResponse) ErrorType() string {
 	return e.ErrorTypeValue
 }
 
 // ErrorDescription returns the error description from the error response
 // The error description is typically a combination of the error code and the error message.
-func (e *ErrorResponse) ErrorDescription() string {
+func (e ErrorResponse) ErrorDescription() string {
 	if e.ErrorDescriptionCC != "" {
 		return e.ErrorDescriptionCC
 	}
@@ -64,7 +56,7 @@ func (e *ErrorResponse) ErrorDescription() string {
 }
 
 // Error is the interface for the error type.
-func (e *ErrorResponse) Error() string {
+func (e ErrorResponse) Error() string {
 	switch {
 	case e.ErrorDescription() != "":
 		return e.ErrorDescription()

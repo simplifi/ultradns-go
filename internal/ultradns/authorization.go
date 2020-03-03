@@ -46,50 +46,45 @@ func (auth *Authorization) Authorize(client *http.Client) error {
 		return nil
 	}
 
+	var bodyBytes []byte
+
 	resp, err := client.PostForm(auth.BaseURL+"/authorization/token", auth.authQuery())
+
 	if err != nil {
+		return err
+	}
+	if err = GetError(resp); err != nil {
 		return err
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode >= 400 || resp.StatusCode < 200 {
-		errorBodyBytes, err := ioutil.ReadAll(resp.Body)
-		if err != nil {
-			return fmt.Errorf("Authorization call returned HTTP Status Code %d. Unable to read body of response", resp.StatusCode)
-		}
-
-		errorJSON := ErrorResponse{}
-		err = json.Unmarshal(errorBodyBytes, &errorJSON)
-		if err != nil {
-			return fmt.Errorf("Authorization call returned HTTP Status Code %d. JSON parsing failed for body '%s'", resp.StatusCode, string(errorBodyBytes))
-		}
-
-		return fmt.Errorf("Authorization call returned HTTP Status Code %d. Error was %s", resp.StatusCode, errorJSON.ErrorDescription())
-	}
-
-	currentEpoch := time.Now().Unix()
-	bodyBytes, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
+	if bodyBytes, err = ioutil.ReadAll(resp.Body); err != nil {
 		return err
 	}
 
 	// Pull the token data from the response and store it in the struct.
 	authJSON := tokenResponse{}
 	json.Unmarshal(bodyBytes, &authJSON)
-	validSeconds, err := strconv.ParseInt(authJSON.ExpiresIn, 10, 64)
+	// Pad the expiration with the client timeout to ensure we re-authorize well before the expiration
+	clientTimeout := int64(math.Ceil(client.Timeout.Seconds()))
+	return auth.updateTokens(&authJSON, clientTimeout)
+}
+
+// Update the tokens from the UltraDNS response. Locks the auth.
+func (auth *Authorization) updateTokens(response *tokenResponse, padding int64) error {
+	currentEpoch := time.Now().Unix()
+	validSeconds, err := strconv.ParseInt(response.ExpiresIn, 10, 64)
 	if err != nil {
 		return err
 	}
 
-	// Get the http.Client timeout in seconds to use as a margin of error.
-	clientTimeout := int64(math.Ceil(client.Timeout.Seconds()))
-	expiration := validSeconds + currentEpoch - clientTimeout
+	expiration := validSeconds + currentEpoch - padding
 
 	// Writes to the struct should be controlled by locking.
 	auth.Lock()
 
-	auth.AccessToken = authJSON.AccessToken
-	auth.RefreshToken = authJSON.RefreshToken
+	auth.AccessToken = response.AccessToken
+	auth.RefreshToken = response.RefreshToken
 	auth.TokenExpires = expiration
 
 	auth.Unlock()

@@ -1,10 +1,7 @@
-// Package ultradns holds the code for abstracting the UltraDNS API for manipulating Sitebacker pools.
+// Package ultradns holds the code for interacting with the UltraDNS REST API.
 package ultradns
 
 import (
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -70,8 +67,7 @@ func NewAPIConnection(options *APIOptions) *APIConnection {
 // * Failing to connect to the API server
 // * When getting an HTTP status code of >= 400
 func (apiConn *APIConnection) Get(url string) (*http.Response, error) {
-	err := apiConn.Authorization.Authorize(apiConn.Client)
-	if err != nil {
+	if err := apiConn.Authorization.Authorize(apiConn.Client); err != nil {
 		return nil, err
 	}
 
@@ -82,26 +78,9 @@ func (apiConn *APIConnection) Get(url string) (*http.Response, error) {
 	req.Header.Add("Authorization", "Bearer "+apiConn.Authorization.AccessToken)
 
 	resp, err := apiConn.Client.Do(req)
-
-	if err != nil {
-		return resp, err
+	if err == nil {
+		err = ultradns.GetError(resp)
 	}
 
-	if resp.StatusCode >= 400 {
-		bodyBytes, err := ioutil.ReadAll(resp.Body)
-		defer resp.Body.Close()
-		if err != nil {
-			return nil, fmt.Errorf("API returned HTTP status code %d. Could not parse response body", resp.StatusCode)
-		}
-		errResp := ultradns.ErrorResponse{}
-
-		err = json.Unmarshal(bodyBytes, &errResp)
-		if err != nil {
-			return resp, fmt.Errorf("API returned HTTP status code %d. Could not parse response body", resp.StatusCode)
-		}
-
-		return resp, &errResp
-	}
-
-	return resp, nil
+	return resp, err
 }
