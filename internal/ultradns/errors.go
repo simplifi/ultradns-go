@@ -5,7 +5,6 @@ import "fmt"
 // ErrorResponse is a representation of the UltraDNS' API JSON error messages.
 // API calls can return this type as an error.
 // UltraDNS' API return values vary between snake and camel case. This attempts to handle that.
-// TODO: move to common code.
 type ErrorResponse struct {
 	error
 	// Numerical code

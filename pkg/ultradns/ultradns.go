@@ -2,6 +2,7 @@
 package ultradns
 
 import (
+	"io"
 	"net/http"
 	"time"
 
@@ -66,8 +67,8 @@ func NewAPIConnection(options *APIOptions) *APIConnection {
 // * encountering an error authorizing
 // * Failing to connect to the API server
 // * When getting an HTTP status code of >= 400
-func (apiConn *APIConnection) Get(url string) (*http.Response, error) {
-	if err := apiConn.Authorization.Authorize(apiConn.Client); err != nil {
+func (apiConn *APIConnection) Get(url string) (resp *http.Response, err error) {
+	if err = apiConn.Authorization.Authorize(apiConn.Client); err != nil {
 		return nil, err
 	}
 
@@ -77,10 +78,35 @@ func (apiConn *APIConnection) Get(url string) (*http.Response, error) {
 	}
 	req.Header.Add("Authorization", "Bearer "+apiConn.Authorization.AccessToken)
 
-	resp, err := apiConn.Client.Do(req)
+	resp, err = apiConn.Client.Do(req)
 	if err == nil {
 		err = ultradns.GetError(resp)
 	}
 
+	return resp, err
+}
+
+// Post executes a POST request at the given url using the APIConnection's client and credentials.
+// This function is similar to http.Post(), but does not require a Content-Type as the type is always set to
+// 'application/json'
+//
+// error will be non-nil when:
+// * encountering an error authorizing
+// * Failing to connect to the API server
+// * When getting an HTTP status code of >= 400
+func (apiConn *APIConnection) Post(url string, body io.Reader) (resp *http.Response, err error) {
+	if err = apiConn.Authorization.Authorize(apiConn.Client); err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("POST", apiConn.BaseURL+url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Authorization", "Bearer "+apiConn.Authorization.AccessToken)
+	req.Header.Add("Content-Type", "application/json")
+	resp, err = apiConn.Client.Do(req)
+	if err == nil {
+		err = ultradns.GetError(resp)
+	}
 	return resp, err
 }
