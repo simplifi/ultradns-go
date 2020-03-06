@@ -29,3 +29,22 @@ lint:
 .PHONY: vet
 vet:
 	go vet ./...
+
+.PHONY: coverage
+coverage:
+	go test -coverprofile=coverage.out ./...
+	go tool cover -func=coverage.out
+
+# Clean the examples
+.PHONY: clean-examples
+clean-examples:
+	rm status
+
+# Build the examples
+.PHONY: examples
+examples: clean-examples
+	make status
+
+# Build any example with make <name>
+% :: examples/%/main.go
+	go build -o $* examples/$*/main.go
