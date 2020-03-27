@@ -1,6 +1,7 @@
 package ultradns
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -19,6 +20,8 @@ const validPassword string = "password123!"
 var validAccessToken = fmt.Sprintf("%0x", rand.Int63())
 var validRefreshToken = fmt.Sprintf("%0x", rand.Int63())
 
+var correctPostBody = []byte(`{"probing":"enable"}`)
+
 func ultradnsMockServer(t *testing.T) *httptest.Server {
 	var resp string
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -27,9 +30,18 @@ func ultradnsMockServer(t *testing.T) *httptest.Server {
 			w.Write([]byte(`{"errorCode":60004,"errorMessage":"Authorization Header required"}`))
 			return
 		}
-		switch r.RequestURI {
-		case "/foo":
+		switch {
+		case r.RequestURI == "/foo":
 			resp = `{"fooBar":"isFooBar"}`
+		case r.RequestURI == "/post/endpoint" && r.Method == "POST":
+			body, err := ioutil.ReadAll(r.Body)
+			assert.NoError(t, err)
+
+			if bytes.Compare(body, correctPostBody) == 0 {
+				resp = `{"yep":true}`
+			} else {
+				resp = `{"yep":false}`
+			}
 		default:
 			// This default case makes it easier to diagnose when new tests fail.
 			w.WriteHeader(400)
@@ -91,4 +103,16 @@ func TestClientGetInvalidTokenReturnsError(t *testing.T) {
 	assert.Error(t, err)
 	// Ensure that the error message is parsed correctly from the expected error JSON:
 	assert.Equal(t, err.Error(), "60004: Authorization Header required")
+}
+
+func TestClientPostReturnsYepTrue(t *testing.T) {
+	server, apiConn := stubbedServerAndAPIConn(t)
+	defer server.Close()
+
+	resp, err := apiConn.Post("/post/endpoint", bytes.NewBuffer(correctPostBody))
+	assert.NoError(t, err)
+	defer resp.Body.Close()
+	bodyBytes, err := ioutil.ReadAll(resp.Body)
+	assert.NoError(t, err)
+	assert.Equal(t, `{"yep":true}`, string(bodyBytes))
 }
