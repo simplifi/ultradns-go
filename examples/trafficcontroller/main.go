@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -13,6 +15,8 @@ func main() {
 	passPtr := flag.String("pass", "", "Password for UltraDNS API")
 	zonePtr := flag.String("zone", "", "Zone to look at, e.g. your main domain, like 'example.com'")
 	trafficControllerPtr := flag.String("tc-name", "", "Address of Traffic Controller to query, e.g. 'my.example.com'")
+	addIPPtr := flag.String("add-ip", "", "IP Address to add to the trafficcontroller")
+	rmIPPtr := flag.String("rm-ip", "", "IP Address to remove from the trafficcontroller")
 
 	flag.Parse()
 
@@ -21,8 +25,14 @@ func main() {
 		return
 	}
 
+	if *addIPPtr != "" && *rmIPPtr != "" {
+		fmt.Println("Provide only one of -add-ip or -rm-ip")
+		flag.PrintDefaults()
+		return
+	}
+
+	// Return all the pools if a specific one wasn't requested.
 	var url string
-	// If the traffic controller name
 	if *trafficControllerPtr == "" {
 		fmt.Println("No -tc-name option passed, listing all TrafficController pools.")
 		url = "/zones/" + *zonePtr + "/rrsets?q=kind:TC_POOLS"
@@ -31,11 +41,41 @@ func main() {
 		url = "/zones/" + *zonePtr + "/rrsets/A/" + *trafficControllerPtr
 	}
 
+	fmt.Println(url)
+
 	// Create an APIConnection with the username/password provided.
 	apiConn := ultradns.NewAPIConnection(&ultradns.APIOptions{
 		Username: *userPtr,
 		Password: *passPtr,
 	})
+
+	// Some ugliness here, but it's just an example of API usage.
+	switch {
+	case *addIPPtr != "":
+		patchArr := make([]Patch, 1)
+		patchArr[0] = Patch{
+			Op:    "add",
+			Path:  "/rdata/1",
+			Value: *addIPPtr,
+		}
+
+		body, err := json.Marshal(patchArr)
+		if err != nil {
+			panic(err)
+		}
+
+		fmt.Printf("sending ( %s )\n", body)
+		resp, err := apiConn.JSONPatch(url, bytes.NewReader(body))
+		if err != nil {
+			panic(err)
+		}
+		bodyBytes, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			panic(err)
+		}
+		fmt.Println(string(bodyBytes))
+	}
+
 	resp, err := apiConn.Get(url)
 	if err != nil {
 		panic(err)
@@ -47,4 +87,11 @@ func main() {
 	}
 
 	fmt.Println(string(bodyBytes))
+}
+
+// Patch is the object structure required for the TrafficController update JSON Patch API.
+type Patch struct {
+	Op    string `json:"op"`
+	Path  string `json:"path"`
+	Value string `json:"value"`
 }

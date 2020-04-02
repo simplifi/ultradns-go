@@ -110,3 +110,80 @@ func (apiConn *APIConnection) Post(url string, body io.Reader) (resp *http.Respo
 	}
 	return resp, err
 }
+
+// Put executes a PUT request at the given url using the APIConnection's client and credentials.
+// This function imitates the http.Post API, but does not require a Content-Type as the type is always set to
+// 'application/json'
+//
+// error will be non-nil when:
+// * encountering an error authorizing
+// * Failing to connect to the API server
+// * When getting an HTTP status code of >= 400
+func (apiConn *APIConnection) Put(url string, body io.Reader) (resp *http.Response, err error) {
+	if err = apiConn.Authorization.Authorize(apiConn.Client); err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("PUT", apiConn.BaseURL+url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Authorization", "Bearer "+apiConn.Authorization.AccessToken)
+	req.Header.Add("Content-Type", "application/json")
+	resp, err = apiConn.Client.Do(req)
+	if err == nil {
+		err = ultradns.GetError(resp)
+	}
+	return resp, err
+}
+
+// Patch executes a PATCH request at the given url using the APIConnection's client and credentials.
+// This function imitates the http.Post API, but does not require a Content-Type as the type is always set to
+// 'application/json'
+//
+// error will be non-nil when:
+// * encountering an error authorizing
+// * Failing to connect to the API server
+// * When getting an HTTP status code of >= 400
+func (apiConn *APIConnection) Patch(url string, body io.Reader) (resp *http.Response, err error) {
+	if err = apiConn.Authorization.Authorize(apiConn.Client); err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("PATCH", apiConn.BaseURL+url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Authorization", "Bearer "+apiConn.Authorization.AccessToken)
+	req.Header.Add("Content-Type", "application/json")
+	resp, err = apiConn.Client.Do(req)
+	if err == nil {
+		err = ultradns.GetError(resp)
+	}
+	return resp, err
+}
+
+// JSONPatch executes a PATCH request at the given url using the APIConnection's client and credentials.
+// JSON Patch is a special form of PATCH request that UltraDNS provides to allow partialy altering
+// a record set. See the UltraDNS REST API for more detail.
+// This function imitates the http.Post API, but does not require a Content-Type as the type is always set to
+// 'application/json'
+//
+// error will be non-nil when:
+// * encountering an error authorizing
+// * Failing to connect to the API server
+// * When getting an HTTP status code of >= 400
+func (apiConn *APIConnection) JSONPatch(url string, body io.Reader) (resp *http.Response, err error) {
+	if err = apiConn.Authorization.Authorize(apiConn.Client); err != nil {
+		return nil, err
+	}
+	req, err := http.NewRequest("PATCH", apiConn.BaseURL+url, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Add("Authorization", "Bearer "+apiConn.Authorization.AccessToken)
+	req.Header.Add("Content-Type", "application/json-patch+json")
+	resp, err = apiConn.Client.Do(req)
+	if err == nil {
+		err = ultradns.GetError(resp)
+	}
+	return resp, err
+}
