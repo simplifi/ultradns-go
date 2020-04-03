@@ -28,13 +28,13 @@ func main() {
 	}
 
 	// Return all the pools if a specific one wasn't requested.
-	var url string
+	url := "/zones/" + *zonePtr + "/rrsets"
 	if *trafficControllerPtr == "" {
 		fmt.Println("No -tc-name option passed, listing all TrafficController pools.")
-		url = "/zones/" + *zonePtr + "/rrsets?q=kind:TC_POOLS"
+		url = url + "?q=kind:TC_POOLS"
 	} else {
 		// This just assumes an 'A' record for simplicity.
-		url = "/zones/" + *zonePtr + "/rrsets/A/" + *trafficControllerPtr
+		url = "/A/" + *trafficControllerPtr
 	}
 
 	// Create an APIConnection with the username/password provided.

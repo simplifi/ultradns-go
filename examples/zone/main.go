@@ -28,12 +28,9 @@ func main() {
 		Password: *passPtr,
 	})
 
-	var url string
-
-	if *zonePtr == "" {
-		url = "/zones/"
-	} else {
-		url = "/zones/" + *zonePtr
+	url := "/zones/"
+	if *zonePtr != "" {
+		url = url + *zonePtr
 	}
 
 	// Make a GET request to the /status endpoint
