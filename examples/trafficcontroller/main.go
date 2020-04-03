@@ -1,3 +1,6 @@
+// Example of how to update a Trafficcontroller.
+// Compile with `make trafficcontroller`
+
 package main
 
 import (
@@ -16,7 +19,6 @@ func main() {
 	zonePtr := flag.String("zone", "", "Zone to look at, e.g. your main domain, like 'example.com'")
 	trafficControllerPtr := flag.String("tc-name", "", "Address of Traffic Controller to query, e.g. 'my.example.com'")
 	addIPPtr := flag.String("add-ip", "", "IP Address to add to the trafficcontroller")
-	rmIPPtr := flag.String("rm-ip", "", "IP Address to remove from the trafficcontroller")
 
 	flag.Parse()
 
@@ -25,7 +27,7 @@ func main() {
 		return
 	}
 
-	if *addIPPtr != "" && *rmIPPtr != "" {
+	if *addIPPtr != "" {
 		fmt.Println("Provide only one of -add-ip or -rm-ip")
 		flag.PrintDefaults()
 		return
@@ -40,8 +42,6 @@ func main() {
 		// This just assumes an 'A' record for simplicity.
 		url = "/zones/" + *zonePtr + "/rrsets/A/" + *trafficControllerPtr
 	}
-
-	//fmt.Println(url)
 
 	// Create an APIConnection with the username/password provided.
 	apiConn := ultradns.NewAPIConnection(&ultradns.APIOptions{
