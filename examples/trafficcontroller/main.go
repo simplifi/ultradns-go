@@ -41,7 +41,7 @@ func main() {
 		url = "/zones/" + *zonePtr + "/rrsets/A/" + *trafficControllerPtr
 	}
 
-	fmt.Println(url)
+	//fmt.Println(url)
 
 	// Create an APIConnection with the username/password provided.
 	apiConn := ultradns.NewAPIConnection(&ultradns.APIOptions{
@@ -52,11 +52,19 @@ func main() {
 	// Some ugliness here, but it's just an example of API usage.
 	switch {
 	case *addIPPtr != "":
-		patchArr := make([]Patch, 1)
+		patchArr := make([]Patch, 2)
 		patchArr[0] = Patch{
 			Op:    "add",
-			Path:  "/rdata/1",
-			Value: *addIPPtr,
+			Path:  "/rdata",
+			Value: []string{*addIPPtr},
+		}
+		patchArr[1] = Patch{
+			Op:   "add",
+			Path: "/profile/rdataInfo/-",
+			Value: map[string]interface{}{
+				"state":    "NORMAL",
+				"priority": 1,
+			},
 		}
 
 		body, err := json.Marshal(patchArr)
@@ -64,7 +72,7 @@ func main() {
 			panic(err)
 		}
 
-		fmt.Printf("sending ( %s )\n", body)
+		fmt.Printf("sending %s : ( %s )\n", url, body)
 		resp, err := apiConn.JSONPatch(url, bytes.NewReader(body))
 		if err != nil {
 			panic(err)
@@ -91,7 +99,7 @@ func main() {
 
 // Patch is the object structure required for the TrafficController update JSON Patch API.
 type Patch struct {
-	Op    string `json:"op"`
-	Path  string `json:"path"`
-	Value string `json:"value"`
+	Op    string      `json:"op"`
+	Path  string      `json:"path"`
+	Value interface{} `json:"value"`
 }
