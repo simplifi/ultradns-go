@@ -27,12 +27,6 @@ func main() {
 		return
 	}
 
-	if *addIPPtr != "" {
-		fmt.Println("Provide only one of -add-ip or -rm-ip")
-		flag.PrintDefaults()
-		return
-	}
-
 	// Return all the pools if a specific one wasn't requested.
 	var url string
 	if *trafficControllerPtr == "" {
@@ -55,12 +49,12 @@ func main() {
 		patchArr := make([]Patch, 2)
 		patchArr[0] = Patch{
 			Op:    "add",
-			Path:  "/rdata",
-			Value: []string{*addIPPtr},
+			Path:  "/rdata/0",
+			Value: *addIPPtr,
 		}
 		patchArr[1] = Patch{
 			Op:   "add",
-			Path: "/profile/rdataInfo/-",
+			Path: "/profile/rdataInfo/0",
 			Value: map[string]interface{}{
 				"state":    "NORMAL",
 				"priority": 1,
@@ -72,7 +66,7 @@ func main() {
 			panic(err)
 		}
 
-		fmt.Printf("sending %s : ( %s )\n", url, body)
+		fmt.Printf("Sending JSON PATCH request to %s with body %s\n", url, body)
 		resp, err := apiConn.JSONPatch(url, bytes.NewReader(body))
 		if err != nil {
 			panic(err)
@@ -81,7 +75,7 @@ func main() {
 		if err != nil {
 			panic(err)
 		}
-		fmt.Println(string(bodyBytes))
+		fmt.Printf("Update returned %s\n", string(bodyBytes))
 	}
 
 	resp, err := apiConn.Get(url)
@@ -94,7 +88,7 @@ func main() {
 		fmt.Printf("Error in ioutil.ReadAll: %s\n", err)
 	}
 
-	fmt.Println(string(bodyBytes))
+	fmt.Printf("New TrafficController configuration: %s", string(bodyBytes))
 }
 
 // Patch is the object structure required for the TrafficController update JSON Patch API.
