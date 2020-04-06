@@ -18,12 +18,12 @@ func GetError(response *http.Response) error {
 
 	bodyBytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return fmt.Errorf("Authorization call returned HTTP Status Code %d. Unable to read body of response", response.StatusCode)
+		return fmt.Errorf("API call returned HTTP Status Code %d. Unable to read body of response", response.StatusCode)
 	}
 
 	errorJSON := ErrorResponse{}
 	if err := json.Unmarshal(bodyBytes, &errorJSON); err != nil {
-		return fmt.Errorf("Authorization call returned HTTP Status Code %d. JSON parsing failed for body '%s'", response.StatusCode, string(bodyBytes))
+		return fmt.Errorf("API call returned HTTP Status Code %d. JSON parsing failed for body '%s'", response.StatusCode, string(bodyBytes))
 	}
 
 	return errorJSON
